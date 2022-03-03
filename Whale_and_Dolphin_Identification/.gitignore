@@ -1,0 +1,9 @@
+input/
+<<<<<<< HEAD
+ArcFace_GeM_Pooling_Starter/kaggle_secret.py
+individual_input
+*.pt
+*.zip
+=======
+ArcFace_GeM_Pooling_Starter/kaggle_secret.py
+>>>>>>> af9cae42911960115e002b5dfdf012c29fd77061
