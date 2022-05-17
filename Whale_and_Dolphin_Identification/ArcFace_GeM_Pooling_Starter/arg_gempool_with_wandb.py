@@ -270,6 +270,7 @@ class HappyWhaleModel(nn.Module):
         in_features = self.model.classifier.in_features
         self.model.classifier = nn.Identity()
         self.model.global_pool = nn.Identity()
+        # 만약에 global_pool 을 빼면 torch.size([8, 1280]) 을 반환  빼지않으면 torch.size([8, 1280, 14, 14])
         # infeatures는 기존 모델의 features 를 저장하는것
         # classifier, global_pool은 기존의 tf_efficientnet_b0_ns 모델의 구성을 identity로 변경
         # -> 내가 나중에 직접 조정해줘야하는듯 ㅎ  test 에가면 실험한거 볼 수 있습니다.
@@ -284,7 +285,10 @@ class HappyWhaleModel(nn.Module):
 
 
     def forward(self, images, labels):
+
+
         features = self.model(images)
+              
         # print(f'features shape:{features.shape}')   ([8, 1280, 14, 14])     ([batch_size, 1280, 14, 14])
         pooled_features = self.pooling(features).flatten(1)
 
@@ -328,14 +332,11 @@ def train_one_epoch(model, optimizer, scheduler, dataloader, device, epoch):
         # 첫번째 배치사이즈를 가져옴
     
         outputs = model(images, labels)
-<<<<<<< HEAD
-        print(f'outputs:{outputs}\n')
-        print(f'labels:{labels}')
-=======
->>>>>>> af9cae42911960115e002b5dfdf012c29fd77061
+        # print(f'outputs:{outputs}\n')
+        # print(f'labels:{labels}')
         loss = criterion(outputs, labels)
+
         # 만약 n_accumulate 가 2라면?
-        
         # loss를 2로 나누고 backpropagation을 진행
         loss = loss / CONFIG['n_accumulate']
             
@@ -396,11 +397,7 @@ def valid_one_epoch(model, dataloader, device, epoch):
 
 def run_training(model, optimizer, scheduler, device, num_epochs):
     # To automatically log gradients
-<<<<<<< HEAD
     wandb.watch(model, log_freq=100)
-=======
-    # wandb.watch(model, log_freq=100)
->>>>>>> af9cae42911960115e002b5dfdf012c29fd77061
     if torch.cuda.is_available():
         print("[INFO] Using GPU: {}\n".format(torch.cuda.get_device_name()))
     
@@ -417,18 +414,13 @@ def run_training(model, optimizer, scheduler, device, num_epochs):
         
         val_epoch_loss = valid_one_epoch(model, valid_loader, device=CONFIG['device'], 
                                          epoch=epoch)
-    
+        
         history['Train Loss'].append(train_epoch_loss)
         history['Valid Loss'].append(val_epoch_loss)
         
         # Log the metrics
-<<<<<<< HEAD
         wandb.log({"Train Loss": train_epoch_loss})
         wandb.log({"Valid Loss": val_epoch_loss})
-=======
-        # wandb.log({"Train Loss": train_epoch_loss})
-        # wandb.log({"Valid Loss": val_epoch_loss})
->>>>>>> af9cae42911960115e002b5dfdf012c29fd77061
         
         # deep copy the model
         if val_epoch_loss <= best_epoch_loss:
@@ -523,27 +515,15 @@ if __name__ == '__main__':
                         weight_decay=CONFIG['weight_decay'])
     scheduler = fetch_scheduler(optimizer)
 
-<<<<<<< HEAD
     run = wandb.init(project='HappyWhale', 
                      config=CONFIG,
                      job_type='Train',
                      tags=['arcface', 'gem-pooling', 'effnet-b0-ns', '448'],
                      anonymous='must')
-=======
-    # run = wandb.init(project='HappyWhale', 
-    #                  config=CONFIG,
-    #                  job_type='Train',
-    #                  tags=['arcface', 'gem-pooling', 'effnet-b0-ns', '448'],
-    #                  anonymous='must')
->>>>>>> af9cae42911960115e002b5dfdf012c29fd77061
 
 
     model, history = run_training(model, optimizer, scheduler,
                                 device=CONFIG['device'],
                                 num_epochs=CONFIG['epochs'])
 
-<<<<<<< HEAD
     run.finish()
-=======
-    # run.finish()
->>>>>>> af9cae42911960115e002b5dfdf012c29fd77061
