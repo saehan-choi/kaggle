@@ -5,6 +5,8 @@ import cv2
 import seaborn as sns
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+from matplotlib.colors import LinearSegmentedColormap
 
 from tqdm import tqdm
 from glob import glob
@@ -67,6 +69,27 @@ class clr:
     S = '\033[1m' + '\033[92m'
     E = '\033[0m'
 
+def CustomCmap(rgb_color):
+
+    r1,g1,b1 = rgb_color
+
+    cdict = {'red': ((0, r1, r1),
+                   (1, r1, r1)),
+           'green': ((0, g1, g1),
+                    (1, g1, g1)),
+           'blue': ((0, b1, b1),
+                   (1, b1, b1))}
+
+    cmap = LinearSegmentedColormap('custom_cmap', cdict)
+    return cmap
+
+mask_colors = [(1.0, 0.7, 0.1), (1.0, 0.5, 1.0), (1.0, 0.22, 0.099)]
+legend_colors = [Rectangle((0,0),1,1, color=color) for color in mask_colors]
+labels = ["Large Bowel", "Small Bowel", "Stomach"]
+
+CMAP1 = CustomCmap(mask_colors[0])
+CMAP2 = CustomCmap(mask_colors[1])
+CMAP3 = CustomCmap(mask_colors[2])
 
 def mask_from_segmentation(segmentation, shape):
     '''Returns the mask corresponding to the inputed segmentation.
@@ -334,7 +357,7 @@ def get_id_mask(ID, verbose=False):
     # pixel_height                                                  1.5
     # Name: 2, dtype: object]
 
-    #     # ~~~ Create the mask ~~~
+    # ~~~ Create the mask ~~~
     # Get the maximum height out of all observations
     # if max == 0 then no class has a segmentation
     # otherwise we keep the length of the mask
@@ -358,6 +381,8 @@ def get_id_mask(ID, verbose=False):
             # Append a new channel to the mask
             if pd.isnull(segmentation) == False:
                 mask[..., k] = mask_from_segmentation(segmentation, shape)
+                # zeros에서 0채널을 large_bowel, 1채널을 small_bowel, 2채널을 stomach로 해놓네요 ㅎ
+                # mask_from_segmentation에는 채널없이 2d image만 반환합니다 ㅎ 그걸 저기서 채널을 이용해서 받아들이네요
 
     # If no segmentation was found skip
     # elif max_segmentation == 0: 여기 오타같네요 segmentation으로 변경합니다.
@@ -365,7 +390,7 @@ def get_id_mask(ID, verbose=False):
         mask = None
         if verbose:
             print("None of the classes have segmentation.")
-            
+
     return mask
 
 # Full Example
@@ -377,6 +402,42 @@ img = read_image(path)
 # Get mask
 ID = "case131_day0_slice_0066"
 mask = get_id_mask(ID, verbose=False)
+
+
+
+def plot_original_mask(img, mask, alpha=1):
+    # Change pixels - when 1 make True, when 0 make NA
+    mask = np.ma.masked_where(mask == 0, mask)
+    # array([0, 1, 2])  -->  mask == 0 -->  data=[--, 1, 2] 이런식으로 진행됨.
+
+    # Split the channels
+    mask_largeB = mask[:, :, 0]
+    mask_smallB = mask[:, :, 1]
+    mask_stomach = mask[:, :, 2]
+
+
+    # Plot the 2 images (Original and with Mask)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 10))
+
+    # Original
+    ax1.set_title("Original Image")
+    ax1.imshow(img)
+    ax1.axis("off")
+
+    # With Mask
+    ax2.set_title("Image with Mask")
+    ax2.imshow(img)
+    ax2.imshow(mask_largeB, interpolation='none', cmap=CMAP1, alpha=alpha)
+    ax2.imshow(mask_smallB, interpolation='none', cmap=CMAP2, alpha=alpha)
+    ax2.imshow(mask_stomach, interpolation='none', cmap=CMAP3, alpha=alpha)
+    ax2.legend(legend_colors, labels)
+    ax2.axis("off")
+    
+#     fig.savefig('foo.png', dpi=500)
+    plt.show()
+
+plot_original_mask(img, mask, alpha=1)
+
 
 
 # plot이 안되서

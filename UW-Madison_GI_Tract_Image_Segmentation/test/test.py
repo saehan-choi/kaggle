@@ -51,5 +51,5 @@ import numpy as np
 
 
 
-for k, location in enumerate(["large_bowel", "small_bowel", "stomach"]):
-    print(location)
+for k, location in enumerate(["large_bowel", "small_bowel", "stomach",'dd','dda']):
+    print(k)
