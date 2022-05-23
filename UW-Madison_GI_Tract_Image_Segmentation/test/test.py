@@ -50,7 +50,22 @@ import numpy as np
 # for k, location in enumerate(["large_bowel", "small_bowel", "stomach",'dd','dda']):
 #     print(k)
 
-import os
-path = '/home/User/Desktop/1_test/2_test/3_test'
-head_tail = os.path.split(path)
-print(head_tail)
+# import os
+# path = '/home/User/Desktop/1_test/2_test/3_test'
+# head_tail = os.path.split(path)
+# print(head_tail)
+
+final_arr = []
+
+# for i in range(5):
+#     final_arr += [1,2,51]
+
+# print(final_arr)
+
+k = torch.randn([5,3,2,2])
+print(k.size())
+
+
+print(k[4])
+
+print(k[4, ...])
