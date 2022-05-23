@@ -129,7 +129,7 @@ class UWDataset(Dataset):
     def __init__(self, meta_df):
         super().__init__()
         self.meta_df = meta_df
-    
+
     def __len__(self):
         return len(self.meta_df)
 
@@ -139,10 +139,11 @@ class UWDataset(Dataset):
         mask_h, mask_w = self.meta_df.loc[index, "height"], self.meta_df.loc[index, "width"]
         mask_string = self.meta_df.loc[index, "segmentation"]
         main_mask_channel = self.load_mask(string=mask_string, h=mask_h, w=mask_w)
+        # 여기엔 정상적으로 저장됨 resize 되기 전
         image = CFG.transform(image)
         main_mask_channel = CFG.transform(main_mask_channel)
-        # resize 이미지 zeros로 가져오기
         mask = torch.zeros((3, CFG.img_resize[0], CFG.img_resize[1]))
+        # resize 이미지 zeros로 가져오기
         class_label = self.meta_df.loc[index, "class"]
         mask[class_label, ...] = main_mask_channel
         # 이거 애매함.. --> [, ...]  흐음...
@@ -155,3 +156,9 @@ class UWDataset(Dataset):
             return Image.fromarray(prepare_mask(string, h, w))
         return Image.fromarray(np.zeros((h, w)))
 
+ds = UWDataset(train_df)
+print(f"Length of the dataset : {len(ds)}")
+
+image, mask = ds[194]
+print(image.shape)
+print(mask.shape)
