@@ -16,6 +16,7 @@ SEED  = 42
 BATCH_SIZE = 64
 import warnings
 warnings.filterwarnings("ignore")
+pd.set_option('display.max_columns', 500)
 
 train_dir = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train"
 training_metadata_path = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train.csv"
@@ -43,7 +44,25 @@ def fetch_file_from_id(root_dir, case_id):
     return file[0]
 
 train_df["path"] = train_df["id"].apply(lambda x: fetch_file_from_id(train_dir, x))
+# pandas를 함수에 적용할때는 apply를 이용
 # train_dir = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train"
 # case_id = case123_day20_slice_0001
-print(train_df.head())
 
+train_df["height"] = train_df["path"].apply(lambda x: os.path.split(x)[-1].split("_")[2]).astype("int")
+train_df["width"] = train_df["path"].apply(lambda x: os.path.split(x)[-1].split("_")[3]).astype("int")
+# os.path.split(x)[-1] --> slice_0001_266_266_1.50_blah_balh 입니다
+# train_df.head()
+# path = '/home/User/Desktop/1_test/2_test/3_test'
+# head_tail = os.path.split(path)
+# print(head_tail)  -->  ('/home/User/Desktop/1_test/2_test', '3_test')
+
+
+class_names = train_df["class"].unique()
+# --> ['large_bowel', 'small_bowel', 'stomach']
+for index, label in enumerate(class_names):
+    # replacing class names with indexes
+    train_df["class"].replace(label, index, inplace = True)
+
+# Mask Generation Methodology :
+# https://www.kaggle.com/code/sagnik1511/uwmgit-data-preparation-from-scratch
+# 여기부터 다시 할 것

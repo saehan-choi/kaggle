@@ -47,9 +47,10 @@ import numpy as np
 # cv2.waitKey(0)
 # print(case_mask.shape)
 
+# for k, location in enumerate(["large_bowel", "small_bowel", "stomach",'dd','dda']):
+#     print(k)
 
-
-
-
-for k, location in enumerate(["large_bowel", "small_bowel", "stomach",'dd','dda']):
-    print(k)
+import os
+path = '/home/User/Desktop/1_test/2_test/3_test'
+head_tail = os.path.split(path)
+print(head_tail)
