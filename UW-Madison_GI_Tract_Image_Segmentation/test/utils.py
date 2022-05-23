@@ -92,10 +92,12 @@ CMAP2 = CustomCmap(mask_colors[1])
 CMAP3 = CustomCmap(mask_colors[2])
 
 def mask_from_segmentation(segmentation, shape):
-    '''Returns the mask corresponding to the inputed segmentation.
+    '''
+    Returns the mask corresponding to the inputed segmentation.
     segmentation: a list of start points and lengths in this order
     max_shape: the shape to be taken by the mask
-    return:: a 2D mask'''
+    return:: a 2D mask
+    '''
 
     # Get a list of numbers from the initial segmentation
     segm = np.asarray(segmentation.split(), dtype=int)
@@ -443,3 +445,4 @@ plot_original_mask(img, mask, alpha=1)
 # plot이 안되서
 # plot_original_mask(img, mask, alpha=1)
 
+# https://www.kaggle.com/code/andradaolteanu/aw-madison-eda-in-depth-mask-exploration/notebook
