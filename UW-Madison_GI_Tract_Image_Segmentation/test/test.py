@@ -55,17 +55,38 @@ import numpy as np
 # head_tail = os.path.split(path)
 # print(head_tail)
 
-final_arr = []
+# final_arr = []
 
-# for i in range(5):
-#     final_arr += [1,2,51]
+# # for i in range(5):
+# #     final_arr += [1,2,51]
 
-# print(final_arr)
+# # print(final_arr)
 
-k = torch.randn([5,3,2,2])
-print(k.size())
+# k = torch.randn([5,3,2,2])
+# print(k.size())
 
 
-print(k[4])
+# print(k[4])
 
-print(k[4, ...])
+# print(k[4, ...])
+
+# a=['a','b','c']
+
+# print("_".join(a))
+
+# k = 'case123_day20_slice_0001'
+
+# a = k.split('_')
+
+# a = ['case123', 'day20', 'slice', '0001']
+# print(a[2:])  --> ['slice', '0001']
+
+
+import keyboard
+
+while True:
+
+
+    keyboard.wait('k')
+    print('space was pressed! Waiting on it again...')
+
