@@ -6,6 +6,9 @@ import pandas as pd
 import torch.nn as nn
 from glob import glob
 from PIL import Image
+
+import cv2
+
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -24,8 +27,10 @@ class CFG:
     batch_size = 64
     img_resize = (256, 256)
     # 지금 244로 테스트하는중입니다.
-    transform = transforms.Compose([transforms.Resize(img_resize),
-                                    transforms.ToTensor()])
+    transform = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Resize(img_resize)
+                                    ])
+                        # if you start with opencv you have to do ToTenser -> resize sequence
 # CONSTANTS
 
 pd.set_option('display.max_columns', 500)
@@ -103,6 +108,7 @@ def fetch_pos_pixel_indexes(indexes, counts):
         final_arr+=[index +i for i in range(counts)]
         # append와 같은역할함 
         # final_arr에는 masked position들이 들어가있습니다. 해석해보면 쉬움
+
     return final_arr
 
 def prepare_mask(string, height, width):
@@ -119,8 +125,12 @@ def prepare_mask(string, height, width):
 
 def load_image(path):
     # loading the image in RGB format
-    image = Image.open(path).convert('RGB')
-    # !!!!!!! 이거 RGB로 안하면 어떻게 되는지 살펴보기 !!!!!!!
+    image = cv2.imread(path)
+    # print(image.shape)
+    # image2 = Image.open(path).convert('RGB')
+    # !!!!!!! 이거 RGB로 안하면 어떻게 되는지 살펴보기 !!!!!!! --> original image channel is one but we have to change RGB for segmentation tasks
+    # print(f'img1:{image.shape}')
+    # print(f'img2:{np.array(image2).shape}')
     return image
 
 
