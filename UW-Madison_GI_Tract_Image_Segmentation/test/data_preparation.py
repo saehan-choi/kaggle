@@ -170,17 +170,23 @@ class UWDataset(Dataset):
 ds = UWDataset(train_df)
 print(f"Length of the dataset : {len(ds)}")
 
-# image, mask = ds[194]
+
 # combined_im_mask = torch.cat([image, mask], dim=2)
 # print(combined_im_mask.size()) --> torch.Size([3, 256, 512])
 
 def show_image(tensor_image, name):
-    plt.figure(figsize=(20, 20))
+    plt.figure(figsize=(10, 10))
     plt.imshow(tensor_image.permute(1,2,0))
-    plt.title(name, size=30)
+    plt.title(name, size=15)
     plt.show()
 
-# show_image(combined_im_mask, "Real & Mask")
+# image, mask = ds[194]
+# print(f"image:{image}")
+# print(f"mask:{mask}")
+# add_im_mask = torch.add(image, mask)
+
+# print(add_im_mask.size())
+# show_image(add_im_mask, "Real & Mask")
 
 
 train_size = int(len(ds)*0.8)
@@ -194,7 +200,11 @@ train_dl = DataLoader(train_ds, batch_size=CFG.batch_size, shuffle = True, drop_
 val_dl = DataLoader(val_ds, batch_size=CFG.batch_size, shuffle=True, drop_last = True)
 
 for train_image_batch, train_mask_batch in train_dl:
-    train_batch = torch.cat([make_grid(train_image_batch, nrow=8), make_grid(train_mask_batch, nrow=8)], dim=2)
+    
+    train_image_sample = train_image_batch[0] 
+    train_mask_sample = train_mask_batch[0]
+    train_batch = torch.add(train_image_sample, train_mask_sample)
+    print(train_batch.size())
     show_image(train_batch, "Training Batch")
 
     # up_date
