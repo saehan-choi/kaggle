@@ -175,9 +175,16 @@ print(f"Length of the dataset : {len(ds)}")
 # print(combined_im_mask.size()) --> torch.Size([3, 256, 512])
 
 def show_image(tensor_image, name):
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(5, 5))
     plt.imshow(tensor_image.permute(1,2,0))
-    plt.title(name, size=15)
+    plt.text(0, -30, 'your legend', bbox={'facecolor': 'blue', 'pad': 2})
+    plt.text(0, -15, 'your legend', bbox={'facecolor': 'green', 'pad': 2})
+    plt.text(0, 0, 'your legend', bbox={'facecolor': 'red', 'pad': 2})
+    # large_bowel -> 0
+    # small_bowel -> 1 
+    # stomach     -> 2
+
+    plt.title(name, size=10)
     plt.show()
 
 # image, mask = ds[194]
