@@ -124,13 +124,16 @@ def prepare_mask(string, height, width):
     return mask_array.reshape(height, width)
 
 def load_image(path):
-    # loading the image in RGB format
-    image = cv2.imread(path)
-    # print(image.shape)
-    # image2 = Image.open(path).convert('RGB')
+
+    image = Image.open(path).convert("RGB")
+    # -> channel 3  but original image shape is 3
     # !!!!!!! 이거 RGB로 안하면 어떻게 되는지 살펴보기 !!!!!!! --> original image channel is one but we have to change RGB for segmentation tasks
-    # print(f'img1:{image.shape}')
-    # print(f'img2:{np.array(image2).shape}')
+    # image = cv2.imread(path, cv2.IMREAD_UNCHANGED).astype('float32')
+    # image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    # image = image.astype(np.uint8)
+    # -> channel 1
+    print(np.array(image).shape)
+
     return image
 
 
@@ -215,3 +218,5 @@ for train_image_batch, train_mask_batch in train_dl:
     show_image(train_batch, "Training Batch")
 
     # up_date
+
+    
