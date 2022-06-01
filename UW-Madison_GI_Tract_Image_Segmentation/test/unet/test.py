@@ -1,6 +1,7 @@
 import torch.nn.functional as F
 import torch
 
+from pathlib import Path
 img = torch.randn(1,3,224,224)
 img_pad = F.pad(img, [1,2,3,4])
 # >>> t4d = torch.empty(3, 3, 4, 2)
@@ -17,4 +18,10 @@ img_pad = F.pad(img, [1,2,3,4])
 # >>> out = F.pad(t4d, p3d, "constant", 0)
 # >>> print(out.size())
 # torch.Size([3, 9, 7, 3])
-print(img_pad.size())
+# print(img_pad.size())
+
+path = './haha/gg/come/here.jpg'
+# print(Path(path))
+from os.path import splitext
+
+print(splitext(path)[0].split('/'))

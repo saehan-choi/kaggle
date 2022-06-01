@@ -47,6 +47,7 @@ class Up(nn.Module):
         
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
+            # nn.upsample -> no train parameter just scale up. but convtranspose2d -> have train parameter 
             self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
             self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
         else:
@@ -61,9 +62,8 @@ class Up(nn.Module):
         # input is CHW
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
-
-        # print(diffY)  after upsample -> 0  bilinear==False
-        # print(diffX)  after upsample -> 0  bilinear==False
+        # print(diffY)  after upsample -> 0  bilinear==False, True both
+        # print(diffX)  after upsample -> 0  bilinear==False, True both
 
         # >>> t4d = torch.empty(3, 3, 4, 2)
         # >>> p2d = (1, 1, 2, 2) # pad last dim by (1, 1) and 2nd to last by (2, 2)
@@ -78,8 +78,8 @@ class Up(nn.Module):
 
         x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2])
-        
-        
+        # I don't think it has no meaning cause always diffX, diffY return 0
+
         # if you have padding issues, see
         # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
         # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
@@ -128,6 +128,9 @@ class UNet(nn.Module):
         logits = self.outc(x)
         return logits
 
-model = UNet(3 , 2)
-img = torch.randn(1,3,256,256)
+model = UNet(3, 2)
+img = torch.randn(1, 3, 256, 256)
 print(model(img).size())
+
+
+
