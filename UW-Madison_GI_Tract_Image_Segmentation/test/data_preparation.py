@@ -18,6 +18,10 @@ import torchvision.transforms as transforms
 import warnings
 warnings.filterwarnings("ignore")
 
+from unet.unet_model import *
+
+from tqdm import tqdm
+
 # width , height 순이네요 !
 # train\case19\case19_day18\scans\slice_0067_360_310_1.50_1.50
 # you can see it's not right width_height_pixelblabla
@@ -26,11 +30,14 @@ class CFG:
     seed  = 42
     batch_size = 64
     img_resize = (256, 256)
+    device = 'cuda'
     # 지금 244로 테스트하는중입니다.
-    transform = transforms.Compose([transforms.ToTensor(),
+    transform  = transforms.Compose([transforms.ToTensor(),
                                     transforms.Resize(img_resize)
                                     ])
                         # if you start with opencv you have to do ToTenser -> resize sequence
+    n_channels = 3
+    n_classes  = 3
 # CONSTANTS
 
 pd.set_option('display.max_columns', 500)
@@ -131,8 +138,8 @@ def load_image(path):
     # image = cv2.imread(path, cv2.IMREAD_UNCHANGED).astype('float32')
     # image = cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     # image = image.astype(np.uint8)
+
     # -> channel 1
-    print(np.array(image).shape)
 
     return image
 
@@ -170,8 +177,6 @@ class UWDataset(Dataset):
             return Image.fromarray(prepare_mask(string, h, w))
         return Image.fromarray(np.zeros((h, w)))
 
-ds = UWDataset(train_df)
-print(f"Length of the dataset : {len(ds)}")
 
 
 # combined_im_mask = torch.cat([image, mask], dim=2)
@@ -199,24 +204,87 @@ def show_image(tensor_image, name):
 # show_image(add_im_mask, "Real & Mask")
 
 
-train_size = int(len(ds)*0.8)
-val_size = len(ds) - train_size
-train_ds, val_ds = random_split(ds, [train_size, val_size], generator=torch.Generator().manual_seed(CFG.seed))
-print(f"Length of the training dataset : {len(train_ds)}")
-print(f"Length of the validation dataset : {len(val_ds)}")
+def train_one_epoch(model, optimizer, dataloader, epoch, device):
+    model.train()
+    dataset_size = 0
+    running_loss = 0
 
+    bar = tqdm(enumerate(dataloader), total=len(dataloader))
+    # this is float now I don't know it's right.
+    for step, data in bar:
+        images = data[0].to(device, dtype=torch.float)
+        labels = data[1].to(device, dtype=torch.float)
+        batch_size = images.size(0)
+        output = model(images)
+        loss = nn.CrossEntropyLoss()(output, labels)
+        loss.backward()
 
-train_dl = DataLoader(train_ds, batch_size=CFG.batch_size, shuffle = True, drop_last = True)
-val_dl = DataLoader(val_ds, batch_size=CFG.batch_size, shuffle=True, drop_last = True)
+        optimizer.step()
+        optimizer.zero_grad()
 
-for train_image_batch, train_mask_batch in train_dl:
+        # running_loss += loss.item()
+        # data_size += batch_size
+        # epoch_loss = 
+        # 이거 안했는데 필요하면 하세요 ㅠㅠ ㅈㅅ
+        bar.set_postfix(epoch=epoch, trainLoss=loss.item())
+
+def val_one_epoch(model, optimizer, dataloader, epoch, device):
+    with torch.no_grad():
+        model.eval()
+
+        dataset_size = 0
+        running_loss = 0
+
+        bar = tqdm(enumerate(dataloader), total=len(dataloader))
+        for step, data in bar:
+            images = data[0].to(device, dtype=torch.float)
+            # this is float now I don't know it's right.
+            labels = data[1].to(device, dtype=torch.float)
+
+            batch_size = images.size()
+            outputs = model(images)
+            loss = nn.CrossEntropyLoss()(outputs, labels)
     
-    train_image_sample = train_image_batch[0] 
-    train_mask_sample = train_mask_batch[0]
-    train_batch = torch.add(train_image_sample, train_mask_sample)
-    print(train_batch.size())
-    show_image(train_batch, "Training Batch")
+            bar.set_postfix(epoch=epoch, valLoss=loss.item())
 
-    # up_date
+
 
     
+
+#     return loss
+
+# def one_val_epoch():
+#     pass
+
+if __name__ == "__main__":
+        
+    ds = UWDataset(train_df)
+    print(f"Length of the dataset : {len(ds)}")
+
+    train_size = int(len(ds)*0.8)
+    val_size = len(ds) - train_size
+    train_ds, val_ds = random_split(ds, [train_size, val_size], generator=torch.Generator().manual_seed(CFG.seed))
+    print(f"Length of the training dataset : {len(train_ds)}")
+    print(f"Length of the validation dataset : {len(val_ds)}")
+
+
+    train_dl = DataLoader(train_ds, batch_size=CFG.batch_size, shuffle = True, drop_last = True)
+    val_dl = DataLoader(val_ds, batch_size=CFG.batch_size, shuffle=True, drop_last = True)
+
+
+    model = UNet(CFG.n_channels, CFG.n_classes).to(CFG.device)
+
+
+
+
+    for data in train_dl:
+
+        # train_image_sample = train_image_batch[0] 
+        # train_mask_sample = train_mask_batch[0]
+        # train_batch = torch.add(train_image_sample, train_mask_sample)
+        # show_image(train_batch, "Training Batch")
+
+        print(f'img_batch :{data[0].size()}')
+        print(f'mask_batch:{data[1].size()}')
+        
+        # print(model)
