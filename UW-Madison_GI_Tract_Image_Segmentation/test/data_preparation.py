@@ -19,6 +19,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from unet.unet_model import *
+from unet.utils.dice_score import dice_loss
+
+import torch.optim as optim
 
 from tqdm import tqdm
 
@@ -28,7 +31,7 @@ from tqdm import tqdm
 
 class CFG:
     seed  = 42
-    batch_size = 64
+    batch_size = 1
     img_resize = (256, 256)
     device = 'cuda'
     # 지금 244로 테스트하는중입니다.
@@ -38,6 +41,9 @@ class CFG:
                         # if you start with opencv you have to do ToTenser -> resize sequence
     n_channels = 3
     n_classes  = 3
+    epochs = 30
+    lr = 1e-5
+
 # CONSTANTS
 
 pd.set_option('display.max_columns', 500)
@@ -204,31 +210,39 @@ def show_image(tensor_image, name):
 # show_image(add_im_mask, "Real & Mask")
 
 
-def train_one_epoch(model, optimizer, dataloader, epoch, device):
+def train_one_epoch(model, optimizer, creterion, dataloader, epoch, device):
     model.train()
     dataset_size = 0
     running_loss = 0
 
     bar = tqdm(enumerate(dataloader), total=len(dataloader))
-    # this is float now I don't know it's right.
     for step, data in bar:
         images = data[0].to(device, dtype=torch.float)
-        labels = data[1].to(device, dtype=torch.float)
+        # this is float now I don't know it's right.
+        mask_true = data[1].to(device, dtype=torch.long)
         batch_size = images.size(0)
-        output = model(images)
-        loss = nn.CrossEntropyLoss()(output, labels)
-        loss.backward()
+        mask_pred = model(images)
 
-        optimizer.step()
+        # print(mask_true.to(dtype=torch.long))
+        # print(mask_true.permute(0, 3, 1, 2).size())
+        
+        loss = creterion(mask_pred, mask_true) \
+                + dice_loss(F.softmax(mask_pred, dim=1).float(),
+                            F.one_hot(mask_true, model.n_classes).float(),
+                            multiclass=True)
+
+        # is this sequence right? it's right
         optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-        # running_loss += loss.item()
-        # data_size += batch_size
-        # epoch_loss = 
+        running_loss += loss.item()*batch_size
+        dataset_size += batch_size
+        epoch_loss = running_loss / dataset_size
         # 이거 안했는데 필요하면 하세요 ㅠㅠ ㅈㅅ
-        bar.set_postfix(epoch=epoch, trainLoss=loss.item())
+        bar.set_postfix(epoch=epoch, trainLoss=epoch_loss)
 
-def val_one_epoch(model, optimizer, dataloader, epoch, device):
+def val_one_epoch(model, criterion, dataloader, epoch, device):
     with torch.no_grad():
         model.eval()
 
@@ -239,22 +253,21 @@ def val_one_epoch(model, optimizer, dataloader, epoch, device):
         for step, data in bar:
             images = data[0].to(device, dtype=torch.float)
             # this is float now I don't know it's right.
-            labels = data[1].to(device, dtype=torch.float)
+            mask_true = data[1].to(device, dtype=torch.long)
 
             batch_size = images.size()
-            outputs = model(images)
-            loss = nn.CrossEntropyLoss()(outputs, labels)
+            mask_pred = model(images)
+            loss = criterion(mask_pred, mask_true) \
+                + dice_loss(F.softmax(mask_pred, dim=1).float(),
+                            F.one_hot(mask_true, model.n_classes).float(),
+                            multiclass=True)                
     
-            bar.set_postfix(epoch=epoch, valLoss=loss.item())
+            running_loss += loss.item()*batch_size
+            dataset_size += batch_size
+            epoch_loss = running_loss / dataset_size
 
+            bar.set_postfix(epoch=epoch, valLoss=epoch_loss)
 
-
-    
-
-#     return loss
-
-# def one_val_epoch():
-#     pass
 
 if __name__ == "__main__":
         
@@ -264,27 +277,15 @@ if __name__ == "__main__":
     train_size = int(len(ds)*0.8)
     val_size = len(ds) - train_size
     train_ds, val_ds = random_split(ds, [train_size, val_size], generator=torch.Generator().manual_seed(CFG.seed))
-    print(f"Length of the training dataset : {len(train_ds)}")
-    print(f"Length of the validation dataset : {len(val_ds)}")
 
-
-    train_dl = DataLoader(train_ds, batch_size=CFG.batch_size, shuffle = True, drop_last = True)
-    val_dl = DataLoader(val_ds, batch_size=CFG.batch_size, shuffle=True, drop_last = True)
+    train_loader = DataLoader(train_ds, batch_size=CFG.batch_size, shuffle = True)
+    val_loader = DataLoader(val_ds, batch_size=CFG.batch_size, shuffle=False)
 
 
     model = UNet(CFG.n_channels, CFG.n_classes).to(CFG.device)
+    optimizer = optim.RMSprop(model.parameters(), lr=CFG.lr, weight_decay=1e-8, momentum=0.9)
+    creterion = nn.CrossEntropyLoss()
 
-
-
-
-    for data in train_dl:
-
-        # train_image_sample = train_image_batch[0] 
-        # train_mask_sample = train_mask_batch[0]
-        # train_batch = torch.add(train_image_sample, train_mask_sample)
-        # show_image(train_batch, "Training Batch")
-
-        print(f'img_batch :{data[0].size()}')
-        print(f'mask_batch:{data[1].size()}')
-        
-        # print(model)
+    for epoch in range(1, CFG.epochs):
+        train_one_epoch(model, optimizer, creterion, train_loader, CFG.epochs, CFG.device)
+        val_one_epoch(model, creterion, val_loader, CFG.epochs, CFG.device)
