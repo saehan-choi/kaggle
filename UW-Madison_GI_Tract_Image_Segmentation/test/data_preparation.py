@@ -31,7 +31,7 @@ from tqdm import tqdm
 
 class CFG:
     seed  = 42
-    batch_size = 1
+    batch_size = 8
     img_resize = (256, 256)
     device = 'cuda'
     # 지금 244로 테스트하는중입니다.
@@ -44,24 +44,6 @@ class CFG:
     epochs = 30
     lr = 1e-5
 
-# CONSTANTS
-
-pd.set_option('display.max_columns', 500)
-
-train_dir = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train"
-training_metadata_path = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train.csv"
-
-# loading metadata
-train_df = pd.read_csv(training_metadata_path)
-# print(train_df.head())
-
-# train_df['id'] == case123_day20_slice_0001
-
-train_df["segmentation"] = train_df["segmentation"].astype("str")
-train_df["case_id"] = train_df["id"].apply(lambda x: x.split("_")[0][4:])
-train_df["day_id"] = train_df["id"].apply(lambda x: x.split("_")[1][3:])
-train_df["slice_id"] = train_df["id"].apply(lambda x: x.split("_")[-1])
-print(train_df.head())
 
 def fetch_file_from_id(root_dir, case_id):
     case_folder = case_id.split("_")[0]
@@ -75,30 +57,7 @@ def fetch_file_from_id(root_dir, case_id):
     # returning the first file, though it will always hold one file. --> it's right haha.
     return file[0]
 
-train_df["path"] = train_df["id"].apply(lambda x: fetch_file_from_id(train_dir, x))
-# pandas를 함수에 적용할때는 apply를 이용
-# train_dir = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train"
-# case_id = case123_day20_slice_0001
 
-train_df["width"] = train_df["path"].apply(lambda x: os.path.split(x)[-1].split("_")[2]).astype("int")
-train_df["height"] = train_df["path"].apply(lambda x: os.path.split(x)[-1].split("_")[3]).astype("int")
-# 주최측 실수 -> height, width순이 아니고 width, height 순 입니다.
-
-# train_df.head()
-# path = '/home/User/Desktop/1_test/2_test/3_test'
-# head_tail = os.path.split(path)
-# print(head_tail)  -->  ('/home/User/Desktop/1_test/2_test', '3_test')
-
-
-class_names = train_df["class"].unique()
-# --> ['large_bowel', 'small_bowel', 'stomach']
-for index, label in enumerate(class_names):
-    # replacing class names with indexes
-    train_df["class"].replace(label, index, inplace = True)
-
-# Mask Generation Methodology :
-# https://www.kaggle.com/code/sagnik1511/uwmgit-data-preparation-from-scratch
-# 여기부터 다시 할 것
 
 def prepare_mask_data(string):
     # fetching all the values from the string
@@ -175,7 +134,6 @@ class UWDataset(Dataset):
 
 
         return image, mask
-        # 이거 plot 해보니깐 이미지들 번진거 좀 있네요 (사이즈조절시 에러난듯.)
 
     def load_mask(self, string, h, w):
         # cheking if the segmentation encoding is a valid mask or null values
@@ -210,7 +168,7 @@ def show_image(tensor_image, name):
 # show_image(add_im_mask, "Real & Mask")
 
 
-def train_one_epoch(model, optimizer, creterion, dataloader, epoch, device):
+def train_one_epoch(model, optimizer, criterion, dataloader, epoch, device):
     model.train()
     dataset_size = 0
     running_loss = 0
@@ -219,17 +177,19 @@ def train_one_epoch(model, optimizer, creterion, dataloader, epoch, device):
     for step, data in bar:
         images = data[0].to(device, dtype=torch.float)
         # this is float now I don't know it's right.
-        mask_true = data[1].to(device, dtype=torch.long)
+        mask_true = data[1].to(device, dtype=torch.float)
         batch_size = images.size(0)
         mask_pred = model(images)
 
         # print(mask_true.to(dtype=torch.long))
         # print(mask_true.permute(0, 3, 1, 2).size())
+        print(F.one_hot(mask_true))
         
-        loss = creterion(mask_pred, mask_true) \
+        loss = criterion(mask_pred, mask_true) \
                 + dice_loss(F.softmax(mask_pred, dim=1).float(),
-                            F.one_hot(mask_true, model.n_classes).float(),
+                            mask_true,
                             multiclass=True)
+        
 
         # is this sequence right? it's right
         optimizer.zero_grad()
@@ -239,7 +199,7 @@ def train_one_epoch(model, optimizer, creterion, dataloader, epoch, device):
         running_loss += loss.item()*batch_size
         dataset_size += batch_size
         epoch_loss = running_loss / dataset_size
-        # 이거 안했는데 필요하면 하세요 ㅠㅠ ㅈㅅ
+        
         bar.set_postfix(epoch=epoch, trainLoss=epoch_loss)
 
 def val_one_epoch(model, criterion, dataloader, epoch, device):
@@ -253,15 +213,15 @@ def val_one_epoch(model, criterion, dataloader, epoch, device):
         for step, data in bar:
             images = data[0].to(device, dtype=torch.float)
             # this is float now I don't know it's right.
-            mask_true = data[1].to(device, dtype=torch.long)
+            mask_true = data[1].to(device, dtype=torch.float)
 
-            batch_size = images.size()
+            batch_size = images.size(0)
             mask_pred = model(images)
             loss = criterion(mask_pred, mask_true) \
                 + dice_loss(F.softmax(mask_pred, dim=1).float(),
-                            F.one_hot(mask_true, model.n_classes).float(),
+                            mask_true,
                             multiclass=True)                
-    
+
             running_loss += loss.item()*batch_size
             dataset_size += batch_size
             epoch_loss = running_loss / dataset_size
@@ -270,7 +230,42 @@ def val_one_epoch(model, criterion, dataloader, epoch, device):
 
 
 if __name__ == "__main__":
-        
+    # CONSTANTS
+
+    pd.set_option('display.max_columns', 500)
+
+    train_dir = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train"
+    training_metadata_path = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train.csv"
+
+    # loading metadata
+    train_df = pd.read_csv(training_metadata_path)
+    # print(train_df.head())
+    # train_df['id'] == case123_day20_slice_0001
+
+    train_df["segmentation"] = train_df["segmentation"].astype("str")
+    train_df["case_id"] = train_df["id"].apply(lambda x: x.split("_")[0][4:])
+    train_df["day_id"] = train_df["id"].apply(lambda x: x.split("_")[1][3:])
+    train_df["slice_id"] = train_df["id"].apply(lambda x: x.split("_")[-1])
+
+    train_df["path"] = train_df["id"].apply(lambda x: fetch_file_from_id(train_dir, x))
+    # train_dir = "./UW-Madison_GI_Tract_Image_Segmentation/input/uw-madison-gi-tract-image-segmentation/train"
+    # case_id = case123_day20_slice_0001
+
+    train_df["width"] = train_df["path"].apply(lambda x: os.path.split(x)[-1].split("_")[2]).astype("int")
+    train_df["height"] = train_df["path"].apply(lambda x: os.path.split(x)[-1].split("_")[3]).astype("int")
+
+    class_names = train_df["class"].unique()
+    # --> ['large_bowel', 'small_bowel', 'stomach']
+    for index, label in enumerate(class_names):
+        train_df["class"].replace(label, index, inplace = True)
+
+    # https://www.kaggle.com/code/sagnik1511/uwmgit-data-preparation-from-scratch
+
+    # no segmentation remove
+    train_df = train_df[train_df['segmentation']!='nan']
+    train_df = train_df.reset_index()
+    print(train_df)
+
     ds = UWDataset(train_df)
     print(f"Length of the dataset : {len(ds)}")
 

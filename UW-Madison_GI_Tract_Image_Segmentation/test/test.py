@@ -90,18 +90,25 @@
 #     keyboard.wait('k')
 #     print('space was pressed! Waiting on it again...')
 
-import torch
+# import torch
 
-input = torch.randn(2,1,224,224)
-target = torch.randn(2,1,224,224)
+# input = torch.randn(2,1,224,224)
+# target = torch.randn(2,1,224,224)
 
-# print(input.reshape(-1).size())
-inter = torch.dot(input.reshape(-1), target.reshape(-1))
+# # print(input.reshape(-1).size())
+# inter = torch.dot(input.reshape(-1), target.reshape(-1))
 
-print(inter)
+# print(inter)
 
-# torch.dot()
-print(inter.size())
+# # torch.dot()
+# print(inter.size())
 
 # k = torch.dot(torch.tensor([2, 3]), torch.tensor([2, 1]))
 # print(k)
+
+import torch.nn.functional as F
+import torch
+true_mask = torch.arange(0,5)
+print(true_mask)
+
+print(F.one_hot(true_mask,5))
