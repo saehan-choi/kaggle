@@ -108,7 +108,11 @@
 
 import torch.nn.functional as F
 import torch
-true_mask = torch.arange(0,5)
-print(true_mask)
+# true_mask = torch.arange(0,5)
+# print(true_mask)
 
-print(F.one_hot(true_mask,5))
+# print(F.one_hot(true_mask,5))
+
+a = torch.tensor([1,1,1,1,1]).to(dtype=torch.float)
+b = torch.tensor([0.6,0.4,3,3,4])
+print(torch.dot(a,b))

@@ -128,9 +128,8 @@ class UNet(nn.Module):
         logits = self.outc(x)
         return logits
 
-model = UNet(3, 2)
-img = torch.randn(1, 3, 256, 256)
-print(model(img).size())
-
-
+# model = UNet(3, 2)
+# img = torch.randn(1, 3, 256, 256)
+# print(model(img).size())
+# print(model)
 

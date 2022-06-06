@@ -19,7 +19,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from unet.unet_model import *
-from unet.utils.dice_score import dice_loss
+from unet.utils.dice_score import dice_coef, iou_coef
 
 import torch.optim as optim
 
@@ -175,6 +175,7 @@ def train_one_epoch(model, optimizer, criterion, dataloader, epoch, device):
 
     bar = tqdm(enumerate(dataloader), total=len(dataloader))
     for step, data in bar:
+        
         images = data[0].to(device, dtype=torch.float)
         # this is float now I don't know it's right.
         mask_true = data[1].to(device, dtype=torch.float)
@@ -183,14 +184,10 @@ def train_one_epoch(model, optimizer, criterion, dataloader, epoch, device):
 
         # print(mask_true.to(dtype=torch.long))
         # print(mask_true.permute(0, 3, 1, 2).size())
-        print(F.one_hot(mask_true))
+                            
+        loss = criterion(mask_pred, mask_true)         
+        dice_coeff = dice_coef(mask_pred, mask_true)
         
-        loss = criterion(mask_pred, mask_true) \
-                + dice_loss(F.softmax(mask_pred, dim=1).float(),
-                            mask_true,
-                            multiclass=True)
-        
-
         # is this sequence right? it's right
         optimizer.zero_grad()
         loss.backward()
@@ -217,16 +214,18 @@ def val_one_epoch(model, criterion, dataloader, epoch, device):
 
             batch_size = images.size(0)
             mask_pred = model(images)
-            loss = criterion(mask_pred, mask_true) \
-                + dice_loss(F.softmax(mask_pred, dim=1).float(),
-                            mask_true,
-                            multiclass=True)                
+
+            dice_coeff = dice_coef(mask_pred, mask_true)
+            iou_coeff = iou_coef(mask_pred, mask_true)
+
+            loss = criterion(mask_pred, mask_true) 
 
             running_loss += loss.item()*batch_size
             dataset_size += batch_size
             epoch_loss = running_loss / dataset_size
 
-            bar.set_postfix(epoch=epoch, valLoss=epoch_loss)
+            bar.set_postfix(epoch=epoch, valLoss=epoch_loss, dicecoef=dice_coeff, iou_coef=iou_coeff)
+
 
 
 if __name__ == "__main__":
