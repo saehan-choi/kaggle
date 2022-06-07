@@ -29,6 +29,10 @@ from tqdm import tqdm
 # train\case19\case19_day18\scans\slice_0067_360_310_1.50_1.50
 # you can see it's not right width_height_pixelblabla
 
+# https://www.kaggle.com/code/awsaf49/uwmgi-unet-train-pytorch
+# RESTART!!!!!!!!!!!!!!!!!!!
+
+
 class CFG:
     seed  = 42
     batch_size = 8
@@ -184,10 +188,10 @@ def train_one_epoch(model, optimizer, criterion, dataloader, epoch, device):
 
         # print(mask_true.to(dtype=torch.long))
         # print(mask_true.permute(0, 3, 1, 2).size())
-                            
-        loss = criterion(mask_pred, mask_true)         
+
+        loss = criterion(mask_pred, mask_true)        
         dice_coeff = dice_coef(mask_pred, mask_true)
-        
+
         # is this sequence right? it's right
         optimizer.zero_grad()
         loss.backward()
@@ -215,8 +219,8 @@ def val_one_epoch(model, criterion, dataloader, epoch, device):
             batch_size = images.size(0)
             mask_pred = model(images)
 
-            dice_coeff = dice_coef(mask_pred, mask_true)
-            iou_coeff = iou_coef(mask_pred, mask_true)
+            dice_coeff = dice_coef(mask_pred, mask_true).item()
+            iou_coeff = iou_coef(mask_pred, mask_true).item()
 
             loss = criterion(mask_pred, mask_true) 
 
