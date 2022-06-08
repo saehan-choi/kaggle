@@ -316,3 +316,6 @@ if __name__ == "__main__":
     for epoch in range(1, CFG.epochs):
         train_one_epoch(model, optimizer, creterion, train_loader, CFG.epochs, CFG.device)
         val_one_epoch(model, creterion, val_loader, CFG.epochs, CFG.device)
+
+        weight_save_path = f'./UW-Madison_GI_Tract_Image_Segmentation/weights/{epoch}model.pt'
+        torch.save(model, weight_save_path)
